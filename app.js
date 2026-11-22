@@ -159,6 +159,20 @@ $('btn-reset').addEventListener('click', () => {
 });
 $('btn-share').addEventListener('click', () => {
   const text = shareText(state.household);
+  function saveStateToURL() {
+  if (state.household.length === 0) return;
+  const encoded = btoa(encodeURIComponent(JSON.stringify(state.household)));
+  window.history.replaceState(null, null, `#plan=${encoded}`);
+}
+
+// Update your `commit()` function to call this:
+function commit() {
+  state.household.push({ ...state.draft });
+  state.draft = {}; state.step = 0;
+  saveStateToURL(); // <--- ADD THIS LINE
+  renderResults();
+  show('results');
+}
   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
 });
 
