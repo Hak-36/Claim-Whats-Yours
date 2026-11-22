@@ -1,46 +1,55 @@
-const assert = require("assert");
-const { buildPlan, shareText } = require("./rules");
+// test.js  — run with:  node --test
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { evaluate, planForPerson, householdPlan, shareText, SCHEMES } from './rules.js';
 
-// Farmer who owns land, age 45, middle income, not enrolled
-const farmer = { age: 45, income: "middle", occupation: "farmer", ownsFarmland: true, enrolled: {} };
-let plan = buildPlan(farmer);
-assert.deepStrictEqual(plan.map((p) => p.id), ["pm-kisan"]);
-assert.strictEqual(plan[0].status, "likely");
-assert.ok(plan[0].nextStep.includes("New Farmer Registration"), "unenrolled farmer should see registration step");
+const byId = (id) => SCHEMES.find((s) => s.id === id);
+const statusOf = (person, id) => evaluate(byId(id), person).status;
 
-// Same farmer, already enrolled: branch changes to status check
-const enrolledFarmer = { ...farmer, enrolled: { "pm-kisan": true } };
-assert.ok(buildPlan(enrolledFarmer)[0].nextStep.includes("Know Your Status"));
+test('senior 70+ gets Vay Vandana, 60-year-old does not', () => {
+  const senior = { age: 72, gender: 'male', location: 'rural', occupation: 'retired', incomeBand: '1to2_5', ownsLand: 'yes', ownsHouse: 'yes', rationCard: 'phh', hasBankAccount: 'yes' };
+  assert.equal(statusOf(senior, 'vay-vandana'), 'likely');
+  assert.equal(statusOf({ ...senior, age: 60 }, 'vay-vandana'), 'no');
+});
 
-// Tenant who does not own land is not matched to PM-KISAN
-const tenant = { age: 45, income: "low", occupation: "farmer", ownsFarmland: false, enrolled: {} };
-assert.ok(!buildPlan(tenant).some((p) => p.id === "pm-kisan"));
+test('tenant farmer is excluded from PM-KISAN with a land blocker', () => {
+  const tenant = { age: 40, gender: 'male', location: 'rural', occupation: 'farmer', incomeBand: 'lt1', ownsLand: 'no', ownsHouse: 'no', rationCard: 'aay', hasBankAccount: 'yes' };
+  const r = evaluate(byId('pm-kisan'), tenant);
+  assert.equal(r.status, 'no');
+  assert.ok(r.blockers.some((b) => /land/i.test(b)));
+});
 
-// Low-income non-farmer under 70: possible family cover only, with a 'why' reason
-const worker = { age: 30, income: "low", occupation: "other", ownsFarmland: false, enrolled: {} };
-plan = buildPlan(worker);
-assert.deepStrictEqual(plan.map((p) => p.id), ["pmjay-family"]);
-assert.strictEqual(plan[0].status, "possible");
-assert.ok(plan[0].why.includes("only a possible match"));
+test('missing detail downgrades to "possible", not "likely"', () => {
+  assert.equal(statusOf({ occupation: 'farmer' }, 'pm-kisan'), 'possible');
+});
 
-// Age 72, high income: senior cover likely, family cover not shown
-const senior = { age: 72, income: "high", occupation: "other", ownsFarmland: false, enrolled: {} };
-assert.deepStrictEqual(buildPlan(senior).map((p) => p.id), ["pmjay-senior"]);
+test('PM-JAY OR-logic: high income but AAY card still qualifies', () => {
+  assert.equal(statusOf({ incomeBand: 'gt5', rationCard: 'aay' }, 'pmjay'), 'likely');
+  assert.equal(statusOf({ incomeBand: 'gt5', rationCard: 'none' }, 'pmjay'), 'no');
+});
 
-// Every item has documents, blockers, an official https URL and a timing note
-for (const p of buildPlan({ ...farmer, age: 72, income: "low" })) {
-  assert.ok(p.documents.length > 0);
-  assert.ok(p.blockers.length > 0);
-  assert.ok(p.officialUrl.startsWith("https://"));
-  assert.ok(p.timing);
-}
+test('girl child under 10 matches Sukanya; 12-year-old does not', () => {
+  assert.equal(statusOf({ gender: 'female', age: 5 }, 'sukanya'), 'likely');
+  assert.equal(statusOf({ gender: 'female', age: 12 }, 'sukanya'), 'no');
+});
 
-// Share text includes the key facts and the disclaimer
-const text = shareText(buildPlan(farmer));
-assert.ok(text.includes("PM-KISAN") && text.includes("Documents:") && text.includes("Confirm on the official portal"));
+test('household plan deduplicates documents and sums indicative cash', () => {
+  const household = [
+    { name: 'A', age: 45, gender: 'male', location: 'rural', occupation: 'farmer', incomeBand: 'lt1', ownsLand: 'yes', ownsHouse: 'yes', rationCard: 'phh', hasBankAccount: 'yes' },
+    { name: 'B', age: 42, gender: 'female', location: 'rural', occupation: 'homemaker', incomeBand: 'lt1', ownsLand: 'no', ownsHouse: 'yes', rationCard: 'phh', hasBankAccount: 'yes' }
+  ];
+  const plan = householdPlan(household);
+  assert.equal(new Set(plan.documents).size, plan.documents.length);
+  assert.equal(plan.cashPerYear, 6000);
+});
 
-// Missing or invalid age returns an empty plan
-assert.deepStrictEqual(buildPlan({ income: "low" }), []);
-assert.deepStrictEqual(buildPlan({ age: -1 }), []);
+test('share text carries the disclaimer and stays WhatsApp-sized', () => {
+  const text = shareText([{ name: 'Ramesh', age: 62, gender: 'male', location: 'rural', occupation: 'farmer', incomeBand: 'lt1', ownsLand: 'yes', ownsHouse: 'yes', rationCard: 'phh', hasBankAccount: 'yes' }]);
+  assert.match(text, /verify/i);
+  assert.match(text, /no personal data/i);
+  assert.ok(text.length < 4000);
+});
 
-console.log("All tests passed");
+test('no scheme throws on an empty person', () => {
+  for (const s of SCHEMES) assert.doesNotThrow(() => evaluate(s, {}));
+});
