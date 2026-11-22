@@ -1,116 +1,188 @@
-// Claim What's Yours - matching rules and claim plans for Indian government schemes.
-// Results are screening guidance, not eligibility decisions. Confirm on the
-// official portal before acting. Rules reviewed: 2026-11-22.
-
-const PROGRAMS = [
+// rules.js  (ES module — works in browser and Node)
+export const SCHEMES = [
   {
-    id: "pm-kisan",
-    name: "PM-KISAN Samman Nidhi",
-    benefit: "₹6,000 a year in three instalments, paid directly to your bank account.",
-    officialUrl: "https://pmkisan.gov.in",
-    // Landholding farmer families. Aadhaar and e-KYC are mandatory.
-    why(a) {
-      return "You answered that you are a farmer who owns cultivable land in your name.";
-    },
-    match(a) {
-      return a.occupation === "farmer" && a.ownsFarmland;
-    },
-    blockers: [
-      "Land records must show ownership in your name (scheme guidelines use a 1 February 2019 land-record cut-off).",
-      "Some higher-income and institutional landholding categories are excluded under the official guidelines.",
-      "Aadhaar seeding and e-KYC must be completed, or payments can be held back.",
-    ],
-    documents: ["Aadhaar card", "Bank account linked to Aadhaar", "Land ownership records (khasra/khatauni or equivalent)"],
-    enrolled: {
-      yes: "Check your payment and e-KYC status: pmkisan.gov.in > Farmers Corner > Know Your Status. Enter your registration number.",
-      no: "Register at pmkisan.gov.in > Farmers Corner > New Farmer Registration. Or visit a Common Service Centre for help.",
-    },
-    timing: "Paid in three instalments a year (roughly April–July, August–November, December–March).",
+    id: 'pm-kisan', name: 'PM-KISAN', category: 'farmer',
+    benefit: '₹6,000/year income support in 3 instalments',
+    cashPerYear: 6000,
+    source: 'https://pmkisan.gov.in',
+    docs: ['Aadhaar', 'Land records (khatauni)', 'Bank passbook'],
+    conditions: [
+      { key: 'occupation', in: ['farmer'], why: 'Farmer household',
+        blocker: 'PM-KISAN is only for farming families' },
+      { key: 'ownsLand', in: ['yes'], why: 'Owns cultivable land',
+        blocker: 'PM-KISAN requires cultivable land in the family\'s name' },
+      { key: 'incomeBand', in: ['lt1', '1to2_5', '2_5to5'],
+        why: 'Below the income-tax threshold',
+        blocker: 'Income-tax payers are excluded from PM-KISAN' }
+    ]
   },
   {
-    id: "pmjay-senior",
-    name: "Ayushman Bharat PM-JAY (senior citizens 70+)",
-    benefit: "Up to ₹5 lakh a year in cashless hospital treatment, regardless of income.",
-    officialUrl: "https://pmjay.gov.in",
-    why(a) {
-      return `You are ${a.age}, which is 70 or above. This group is covered regardless of income.`;
-    },
-    match(a) {
-      return a.age >= 70;
-    },
-    blockers: [
-      "Certain government health schemes (such as CGHS, ECHS, or CAPF) require you to choose between them and PM-JAY.",
-    ],
-    documents: ["Aadhaar card", "Mobile number linked to Aadhaar (for the OTP check)"],
-    enrolled: {
-      yes: "Download your card from mera.pmjay.gov.in using your registered mobile number.",
-      no: "Use 'Am I Eligible' at pmjay.gov.in, or visit a Common Service Centre, to confirm and get your Ayushman card.",
-    },
-    timing: "Once confirmed, the card works at empanelled hospitals across India.",
+    id: 'pmfby', name: 'PM Fasal Bima Yojana', category: 'farmer',
+    benefit: 'Crop insurance — farmer pays ~2% premium (kharif)',
+    cashPerYear: 0, source: 'https://pmfby.gov.in',
+    docs: ['Aadhaar', 'Land records', 'Sowing certificate', 'Bank passbook'],
+    conditions: [
+      { key: 'occupation', in: ['farmer'], why: 'Notified crop grower', blocker: 'Only for farmers growing a notified crop' },
+      { key: 'ownsLand', in: ['yes'], why: 'Has insurable land', blocker: 'Needs land under cultivation' }
+    ]
   },
   {
-    id: "pmjay-family",
-    name: "Ayushman Bharat PM-JAY (family cover)",
-    benefit: "Up to ₹5 lakh per family a year in cashless hospital treatment.",
-    officialUrl: "https://pmjay.gov.in",
-    why(a) {
-      return "Your household income is low, and eligibility depends on government database records we cannot see, so this is only a possible match.";
-    },
-    match(a) {
-      return a.age < 70 && a.income === "low";
-    },
-    blockers: [
-      "Eligibility depends on SECC database records and state lists. Your name may not appear even if your income is low.",
-      "Income tax payers are generally excluded.",
-    ],
-    documents: ["Aadhaar card", "Ration card or family ID", "Mobile number linked to Aadhaar"],
-    enrolled: {
-      yes: "Check your card or beneficiary status at mera.pmjay.gov.in.",
-      no: "Use 'Am I Eligible' at pmjay.gov.in with your mobile number and OTP, or ask at a Common Service Centre.",
-    },
-    timing: "Checking takes a few minutes online. Enrolment is free.",
+    id: 'pmjay', name: 'Ayushman Bharat (PM-JAY)', category: 'health',
+    benefit: '₹5 lakh/year family health cover, cashless',
+    cashPerYear: 0, source: 'https://pmjay.gov.in',
+    docs: ['Aadhaar', 'Ration card', 'Income proof (if asked)'],
+    conditions: [
+      { key: 'incomeBand', test: (v, p) => ['lt1', '1to2_5'].includes(p.incomeBand) || ['aay', 'phh'].includes(p.rationCard),
+        why: (p) => ['aay', 'phh'].includes(p.rationCard)
+          ? 'Priority/Antyodaya ration card'
+          : 'Low household income',
+        blocker: 'PM-JAY targets low-income and priority-ration households' }
+    ]
   },
+  {
+    id: 'vay-vandana', name: 'Ayushman Vay Vandana (70+)', category: 'health',
+    benefit: '₹5 lakh/year health cover for every senior aged 70+',
+    cashPerYear: 0, source: 'https://pmjay.gov.in',
+    docs: ['Aadhaar', 'Age proof'],
+    conditions: [
+      { key: 'age', test: (v) => v >= 70, why: 'Aged 70 or above',
+        blocker: 'Only for seniors aged 70 and above' }
+    ]
+  },
+  {
+    id: 'ujjwala', name: 'PM Ujjwala Yojana', category: 'women',
+    benefit: 'Free LPG connection + subsidised refills',
+    cashPerYear: 0, source: 'https://pmuy.gov.in',
+    docs: ['Aadhaar', 'Ration card', 'Bank passbook', 'Address proof'],
+    conditions: [
+      { key: 'gender', in: ['female'], why: 'Adult woman in the household', blocker: 'Connections are issued in an adult woman\'s name' },
+      { key: 'age', test: (v) => v >= 18, why: 'Adult', blocker: 'Applicant must be 18+' },
+      { key: 'incomeBand', in: ['lt1', '1to2_5'], why: 'Low-income household', blocker: 'For BPL / low-income households' }
+    ],
+    extraProof: ['No existing LPG connection in the household']
+  },
+  {
+    id: 'surya-ghar', name: 'PM Surya Ghar: Muft Bijli', category: 'energy',
+    benefit: 'Rooftop solar subsidy up to ₹78,000 + up to 300 free units/month',
+    cashPerYear: 0, source: 'https://pmsuryaghar.gov.in',
+    docs: ['Aadhaar', 'Electricity bill', 'Roof ownership proof', 'Bank passbook'],
+    conditions: [
+      { key: 'ownsHouse', in: ['yes'], why: 'Owns the roof', blocker: 'Needs your own roof to install panels' }
+    ],
+    extraProof: ['A valid electricity connection at the address']
+  },
+  {
+    id: 'pmayg', name: 'PMAY-Gramin', category: 'housing',
+    benefit: 'Assistance to build a pucca house (rural)',
+    cashPerYear: 0, source: 'https://pmayg.nic.in',
+    docs: ['Aadhaar', 'Job card / SECC reference', 'Bank passbook', 'Land papers (if any)'],
+    conditions: [
+      { key: 'location', in: ['rural'], why: 'Rural household', blocker: 'PMAY-G is the rural housing scheme' },
+      { key: 'ownsHouse', in: ['no'], why: 'No pucca house', blocker: 'For families without a pucca house' },
+      { key: 'incomeBand', in: ['lt1', '1to2_5'], why: 'Low-income household', blocker: 'Targets low-income rural families' }
+    ]
+  },
+  {
+    id: 'mgnrega', name: 'MGNREGA Job Card', category: 'work',
+    benefit: 'Up to 100 days of guaranteed wage work per year',
+    cashPerYear: 0, source: 'https://nrega.nic.in',
+    docs: ['Aadhaar', 'Bank passbook', 'Photograph', 'Address proof'],
+    conditions: [
+      { key: 'location', in: ['rural'], why: 'Rural resident', blocker: 'Rural scheme' },
+      { key: 'age', test: (v) => v >= 18, why: 'Adult', blocker: 'Must be 18+' },
+      { key: 'occupation', in: ['labourer', 'farmer', 'unemployed', 'homemaker'],
+        why: 'Available for manual work', blocker: 'For those seeking unskilled manual work' }
+    ]
+  },
+  {
+    id: 'apy', name: 'Atal Pension Yojana', category: 'pension',
+    benefit: 'Pension of ₹1,000–₹5,000/month after age 60',
+    cashPerYear: 0, source: 'https://npscra.nsdl.co.in',
+    docs: ['Aadhaar', 'Savings bank account', 'Mobile number'],
+    conditions: [
+      { key: 'age', test: (v) => v >= 18 && v <= 40, why: 'In the 18–40 entry window', blocker: 'Entry age is 18 to 40' },
+      { key: 'hasBankAccount', in: ['yes'], why: 'Has a savings account', blocker: 'Needs a savings bank account' },
+      { key: 'incomeBand', in: ['lt1', '1to2_5'], why: 'Unorganised-sector income band', blocker: 'For unorganised-sector workers below the tax threshold' }
+    ]
+  },
+  {
+    id: 'nsp-scholarship', name: 'National Scholarship Portal', category: 'education',
+    benefit: 'Pre-matric / post-matric scholarships (amount varies by scheme)',
+    cashPerYear: 0, source: 'https://scholarships.gov.in',
+    docs: ['Aadhaar', 'Previous marksheet', 'Bank passbook', 'Institute certificate'],
+    conditions: [
+      { key: 'occupation', in: ['student'], why: 'Currently studying', blocker: 'For students only' },
+      { key: 'incomeBand', in: ['lt1', '1to2_5'], why: 'Low family income', blocker: 'Family income caps apply' }
+    ],
+    extraProof: ['SC / ST / OBC / Minority certificate, if applicable']
+  },
+  {
+    id: 'sukanya', name: 'Sukanya Samriddhi Yojana', category: 'girls',
+    benefit: 'High-interest savings account for a girl child (tax-free)',
+    cashPerYear: 0, source: 'https://www.indiapost.gov.in',
+    docs: ['Girl\'s birth certificate', 'Guardian Aadhaar', 'Guardian bank account'],
+    conditions: [
+      { key: 'gender', in: ['female'], why: 'Girl child', blocker: 'For girls only' },
+      { key: 'age', test: (v) => v < 10, why: 'Under 10 years old', blocker: 'Account must be opened before age 10' }
+    ]
+  }
 ];
 
-// answers: { age, income: "low"|"middle"|"high", occupation: "farmer"|"other",
-//            ownsFarmland: boolean, enrolled: { [programId]: boolean } }
-function buildPlan(answers, programs = PROGRAMS) {
-  if (!answers || typeof answers.age !== "number" || answers.age < 0) return [];
-  const plan = [];
-  for (const p of programs) {
-    if (!p.match(answers)) continue;
-    const likely = p.id !== "pmjay-family";
-    const isEnrolled = !!(answers.enrolled && answers.enrolled[p.id]);
-    plan.push({
-      id: p.id,
-      name: p.name,
-      status: likely ? "likely" : "possible",
-      benefit: p.benefit,
-      why: p.why(answers),
-      blockers: p.blockers,
-      documents: p.documents,
-      nextStep: isEnrolled ? p.enrolled.yes : p.enrolled.no,
-      timing: p.timing,
-      officialUrl: p.officialUrl,
-    });
+const val = (x, p) => (typeof x === 'function' ? x(null, p) : x);
+
+export function evaluate(scheme, person) {
+  const why = [], blockers = [], missing = [];
+  let hardFail = false;
+  for (const c of scheme.conditions) {
+    const v = person[c.key];
+    if (v === undefined || v === null || v === '') { missing.push(c.key); continue; }
+    const ok = c.in ? c.in.includes(v) : c.test(v, person);
+    if (ok) { if (c.why) why.push(val(c.why, person)); }
+    else {
+      if (c.blocker) blockers.push(val(c.blocker, person));
+      if (!c.soft) hardFail = true;
+    }
   }
-  return plan.sort((x, y) => (x.status === y.status ? 0 : x.status === "likely" ? -1 : 1));
+  const status = hardFail ? 'no' : missing.length ? 'possible' : 'likely';
+  return { id: scheme.id, scheme, status, why, blockers, missing };
 }
 
-// Plain-language summary the user can copy and send to family or a helper.
-function shareText(plan) {
-  if (plan.length === 0) return "No matches found. Check pmjay.gov.in and pmkisan.gov.in directly.";
-  const lines = ["Government schemes to check (Claim What's Yours):"];
-  plan.forEach((p, i) => {
-    lines.push(`${i + 1}. ${p.name} (${p.status === "likely" ? "likely" : "possible"})`);
-    lines.push(`   Next step: ${p.nextStep}`);
-    lines.push(`   Documents: ${p.documents.join(", ")}`);
-    lines.push(`   Official site: ${p.officialUrl}`);
-  });
-  lines.push("Confirm on the official portal before applying.");
-  return lines.join("\n");
+export function planForPerson(person) {
+  const rank = { likely: 0, possible: 1, no: 2 };
+  return SCHEMES.map((s) => evaluate(s, person))
+    .filter((r) => r.status !== 'no')
+    .sort((a, b) => rank[a.status] - rank[b.status]
+      || (b.scheme.cashPerYear || 0) - (a.scheme.cashPerYear || 0));
 }
 
-if (typeof module !== "undefined") {
-  module.exports = { PROGRAMS, buildPlan, shareText };
+export function householdPlan(household) {
+  const people = household.map((p) => ({ person: p, results: planForPerson(p) }));
+  const docs = new Set();
+  let cashPerYear = 0, likely = 0;
+  for (const { results } of people) {
+    for (const r of results) {
+      r.scheme.docs.forEach((d) => docs.add(d));
+      if (r.status === 'likely') { likely++; cashPerYear += r.scheme.cashPerYear || 0; }
+    }
+  }
+  return { people, documents: [...docs].sort(), cashPerYear, likely };
+}
+
+export function shareText(household) {
+  const plan = householdPlan(household);
+  const lines = ['*MyScheme Plan* — indicative only, verify before applying', ''];
+  for (const { person, results } of plan.people) {
+    lines.push(`👤 ${person.name || 'Member'} (${person.age || '?'})`);
+    if (!results.length) lines.push('  • No schemes matched the details entered');
+    for (const r of results) {
+      lines.push(`  • ${r.scheme.name} — ${r.status}`);
+      lines.push(`    ${r.scheme.benefit}`);
+    }
+    lines.push('');
+  }
+  if (plan.cashPerYear) lines.push(`💰 Indicative cash support: ~₹${plan.cashPerYear.toLocaleString('en-IN')}/year (excludes insurance covers)`);
+  lines.push(`📄 Documents to gather: ${plan.documents.join(', ')}`);
+  lines.push('');
+  lines.push('Generated offline — no personal data left the device.');
+  return lines.join('\n');
 }
