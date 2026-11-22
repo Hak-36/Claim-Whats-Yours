@@ -101,6 +101,7 @@ function next() {
 function commit() {
   state.household.push({ ...state.draft });
   state.draft = {}; state.step = 0;
+  saveStateToURL();
   renderResults();
   show('results');
 }
@@ -119,21 +120,15 @@ function renderResults() {
           <div class="rounded-xl border border-slate-200 p-3">
             <div class="flex items-start justify-between gap-3">
               <p class="font-semibold leading-snug">${esc(r.scheme.name)}</p>
-              <span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${badge[r.status]}">${r.status}</span>
+              <span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${badge[r.status]}">${esc(r.status)}</span>
             </div>
             <p class="mt-1 text-sm text-slate-700">${esc(r.scheme.benefit)}</p>
             ${r.why.length ? `<ul class="mt-2 space-y-0.5 text-xs text-emerald-800">${r.why.map((w) => `<li>✓ ${esc(w)}</li>`).join('')}</ul>` : ''}
-            // Inside app.js -> renderResults() -> map function
             ${r.blockers.length ? `
-  <div class="mt-3 rounded-lg bg-red-50 p-3 border border-red-200">
-    <p class="text-xs text-red-800 font-medium mb-1">Blockers:</p>
-    <ul class="space-y-0.5 text-xs text-red-700">${r.blockers.map((b) => `<li>! ${esc(b)}</li>`).join('')}</ul>
-    <button onclick="alert('Routing to nearest CSC for document issuance... (Monetization path)')" 
-      class="mt-2 w-full rounded bg-red-600 px-3 py-1.5 text-xs font-semibold text-white active:scale-95">
-      Resolve Blocker → Find CSC Partner
-    </button>
-  </div>
-` : ''}
+              <div class="mt-3 rounded-lg border border-red-200 bg-red-50 p-3">
+                <p class="mb-1 text-xs font-medium text-red-800">Blockers:</p>
+                <ul class="space-y-0.5 text-xs text-red-700">${r.blockers.map((b) => `<li>! ${esc(b)}</li>`).join('')}</ul>
+              </div>` : ''}
             ${r.missing.length ? `<p class="mt-2 text-xs text-amber-800">! Missing detail: ${esc(r.missing.join(', '))}</p>` : ''}
             ${(r.scheme.extraProof || []).length ? `<p class="mt-2 text-xs text-slate-600">Also needed: ${esc(r.scheme.extraProof.join('; '))}</p>` : ''}
             <p class="mt-2 text-xs text-slate-500">Docs: ${esc(r.scheme.docs.join(', '))}</p>
@@ -156,62 +151,50 @@ function renderResults() {
   $('results-body').innerHTML = people + summary;
 }
 
+/* ---------- saving and loading the plan in the URL ---------- */
+function saveStateToURL() {
+  if (state.household.length === 0) return;
+  const encoded = btoa(encodeURIComponent(JSON.stringify(state.household)));
+  history.replaceState(null, '', `#plan=${encoded}`);
+  const meter = $('payload-meter');
+  if (meter) {
+    meter.textContent = `State payload: ${new Blob([encoded]).size} bytes (no server storage)`;
+    meter.classList.remove('hidden');
+  }
+}
+
+function loadStateFromURL() {
+  if (!location.hash.startsWith('#plan=')) return false;
+  try {
+    const decoded = JSON.parse(decodeURIComponent(atob(location.hash.slice(6))));
+    if (Array.isArray(decoded) && decoded.length) {
+      state.household = decoded;
+      renderResults();
+      show('results');
+      return true;
+    }
+  } catch (e) {
+    console.error('Could not load shared plan', e);
+  }
+  return false;
+}
+
 /* ---------- wiring ---------- */
 $('btn-start').addEventListener('click', () => { state.step = 0; state.draft = {}; renderStep(); show('wizard'); });
 $('btn-next').addEventListener('click', next);
 $('btn-back').addEventListener('click', () => {
-  if (state.step === 0) { show('start'); return; }
+  if (state.step === 0) { show(state.household.length ? 'results' : 'start'); return; }
   state.step--; renderStep();
 });
 $('btn-add').addEventListener('click', () => { state.step = 0; state.draft = {}; renderStep(); show('wizard'); });
 $('btn-reset').addEventListener('click', () => {
-  state.household = []; state.draft = {}; state.step = 0; show('start');
+  state.household = []; state.draft = {}; state.step = 0;
+  history.replaceState(null, '', location.pathname);
+  show('start');
 });
 $('btn-share').addEventListener('click', () => {
   const text = shareText(state.household);
-  function saveStateToURL() {
-  if (state.household.length === 0) return;
-  const encoded = btoa(encodeURIComponent(JSON.stringify(state.household)));
-  window.history.replaceState(null, null, `#plan=${encoded}`);
-}
-
-// Update your `commit()` function to call this:
-function commit() {
-  state.household.push({ ...state.draft });
-  state.draft = {}; state.step = 0;
-  saveStateToURL(); // <--- ADD THIS LINE
-  renderResults();
-  show('results');
-}
-  function loadStateFromURL() {
-  if (window.location.hash.startsWith('#plan=')) {
-    try {
-      const decoded = JSON.parse(decodeURIComponent(atob(window.location.hash.replace('#plan=', ''))));
-      if (Array.isArray(decoded) && decoded.length > 0) {
-        state.household = decoded;
-        renderResults();
-        show('results');
-      }
-    } catch (e) {
-      console.error("Could not load shared plan.");
-    }
-  }
-}
-  function saveStateToURL() {
-  if (state.household.length === 0) return;
-  const encoded = btoa(encodeURIComponent(JSON.stringify(state.household)));
-  window.history.replaceState(null, null, `#plan=${encoded}`);
-  
-  // Add this visual meter!
-  const byteSize = new Blob([encoded]).size;
-  const meter = document.getElementById('payload-meter');
-  if (meter) {
-    meter.textContent = `State Payload: ${byteSize} bytes (Zero-Server PII)`;
-    meter.classList.remove('hidden');
-  }
-}
-loadStateFromURL(); // <--- Call this right before show('start') at the bottom
   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
 });
 
-show('start');
+if (!loadStateFromURL()) show('start');
