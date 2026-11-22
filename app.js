@@ -173,6 +173,21 @@ function commit() {
   renderResults();
   show('results');
 }
+  function loadStateFromURL() {
+  if (window.location.hash.startsWith('#plan=')) {
+    try {
+      const decoded = JSON.parse(decodeURIComponent(atob(window.location.hash.replace('#plan=', ''))));
+      if (Array.isArray(decoded) && decoded.length > 0) {
+        state.household = decoded;
+        renderResults();
+        show('results');
+      }
+    } catch (e) {
+      console.error("Could not load shared plan.");
+    }
+  }
+}
+loadStateFromURL(); // <--- Call this right before show('start') at the bottom
   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
 });
 
