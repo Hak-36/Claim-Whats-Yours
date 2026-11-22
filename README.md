@@ -3,6 +3,7 @@
 **A household scheme planner for India.** Discovery portals stop at *"here's a scheme."* We start there.
 
 🔗 **Live demo:** https://hak-36.github.io/Claim-Whats-Yours/  
+**90 Seconds Walktrough:** https://youtu.be/h3XhnoNvbBI
 
 <!-- Drop a screenshot of the results screen right here -->
 <!-- ![Results screen](docs/results.png) -->
