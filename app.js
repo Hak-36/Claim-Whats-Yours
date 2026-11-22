@@ -123,7 +123,17 @@ function renderResults() {
             </div>
             <p class="mt-1 text-sm text-slate-700">${esc(r.scheme.benefit)}</p>
             ${r.why.length ? `<ul class="mt-2 space-y-0.5 text-xs text-emerald-800">${r.why.map((w) => `<li>✓ ${esc(w)}</li>`).join('')}</ul>` : ''}
-            ${r.blockers.length ? `<ul class="mt-2 space-y-0.5 text-xs text-amber-800">${r.blockers.map((b) => `<li>! ${esc(b)}</li>`).join('')}</ul>` : ''}
+            // Inside app.js -> renderResults() -> map function
+            ${r.blockers.length ? `
+  <div class="mt-3 rounded-lg bg-red-50 p-3 border border-red-200">
+    <p class="text-xs text-red-800 font-medium mb-1">Blockers:</p>
+    <ul class="space-y-0.5 text-xs text-red-700">${r.blockers.map((b) => `<li>! ${esc(b)}</li>`).join('')}</ul>
+    <button onclick="alert('Routing to nearest CSC for document issuance... (Monetization path)')" 
+      class="mt-2 w-full rounded bg-red-600 px-3 py-1.5 text-xs font-semibold text-white active:scale-95">
+      Resolve Blocker → Find CSC Partner
+    </button>
+  </div>
+` : ''}
             ${r.missing.length ? `<p class="mt-2 text-xs text-amber-800">! Missing detail: ${esc(r.missing.join(', '))}</p>` : ''}
             ${(r.scheme.extraProof || []).length ? `<p class="mt-2 text-xs text-slate-600">Also needed: ${esc(r.scheme.extraProof.join('; '))}</p>` : ''}
             <p class="mt-2 text-xs text-slate-500">Docs: ${esc(r.scheme.docs.join(', '))}</p>
