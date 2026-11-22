@@ -1,166 +1,52 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Claim What's Yours</title>
-  <style>
-    body { font-family: system-ui, sans-serif; max-width: 680px; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; line-height: 1.5; }
-    h1 { margin-bottom: 0.25rem; }
-    h2 { margin-top: 2rem; font-size: 1.25rem; }
-    .sub { color: #555; margin-top: 0; }
-    fieldset { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; margin-top: 1rem; }
-    legend { font-weight: 600; padding: 0 0.25rem; }
-    label { display: block; margin-top: 0.75rem; font-weight: 600; }
-    input, select { width: 100%; padding: 0.5rem; margin-top: 0.25rem; font-size: 1rem; box-sizing: border-box; }
-    .check { font-weight: normal; display: flex; gap: 0.5rem; align-items: center; margin-top: 0.5rem; }
-    .check input { width: auto; margin: 0; }
-    button { margin-top: 0.75rem; padding: 0.6rem 1rem; font-size: 1rem; background: #2563eb; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
-    button.secondary { background: #fff; color: #1d4ed8; border: 1px solid #1d4ed8; }
-    .members { margin-top: 1rem; }
-    .member { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding: 0.4rem 0; }
-    .card { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; margin-top: 0.75rem; }
-    .card h3 { margin: 0 0 0.25rem; font-size: 1.05rem; }
-    .badge { display: inline-block; font-size: 0.75rem; padding: 0.15rem 0.5rem; border-radius: 999px; margin-bottom: 0.5rem; }
-    .likely { background: #dcfce7; color: #166534; }
-    .possible { background: #fef9c3; color: #854d0e; }
-    .card p { margin: 0.3rem 0; color: #333; }
-    .small { font-size: 0.9rem; color: #555; }
-    ul { margin: 0.25rem 0 0.5rem 1.2rem; padding: 0; }
-    .error { color: #b91c1c; margin-top: 1rem; }
-    .disclaimer { font-size: 0.85rem; color: #555; margin-top: 2rem; border-top: 1px solid #eee; padding-top: 1rem; }
-    pre { white-space: pre-wrap; background: #f5f5f5; padding: 0.75rem; border-radius: 6px; font-size: 0.85rem; }
-    a { color: #1d4ed8; }
-  </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MyScheme Planner — know what you qualify for</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <h1>Claim What's Yours</h1>
-  <p class="sub">Find the government support you may be missing, get a step-by-step claim plan, and share it with family.</p>
+<body class="bg-slate-50 text-slate-900 antialiased">
+  <main class="mx-auto min-h-screen w-full max-w-md px-5 py-6 flex flex-col">
 
-  <form id="form">
-    <fieldset>
-      <legend>Add a person</legend>
-      <label>Name or label (optional) <input type="text" id="label" maxlength="40" placeholder="e.g. Dad, Me" /></label>
-      <label>Age <input type="number" id="age" min="0" max="120" required /></label>
-      <label>Where do you live?
-        <select id="area"><option value="rural">Rural</option><option value="urban">Urban</option></select>
-      </label>
-      <label>Household income
-        <select id="income"><option value="low">Low</option><option value="middle">Middle</option><option value="high">High</option></select>
-      </label>
-      <label>Main occupation
-        <select id="occupation"><option value="farmer">Farmer</option><option value="other">Other</option></select>
-      </label>
-      <label class="check"><input type="checkbox" id="ownsFarmland" /> I own cultivable farmland in my name</label>
-      <label class="check"><input type="checkbox" id="enrolledPmKisan" /> Already registered for PM-KISAN</label>
-      <label class="check"><input type="checkbox" id="enrolledPmjay" /> Already have an Ayushman card</label>
-      <button type="button" id="addMember" class="secondary">Add person to household</button>
-    </fieldset>
-  </form>
+    <!-- START -->
+    <section id="screen-start" class="flex-1 flex flex-col justify-center">
+      <h1 class="text-3xl font-bold leading-tight">Find every scheme your family qualifies for.</h1>
+      <p class="mt-3 text-slate-600">Answer a few questions. Get a plan, a document checklist, and a WhatsApp-ready summary. Nothing is uploaded.</p>
+      <button id="btn-start"
+        class="mt-8 w-full rounded-2xl bg-emerald-600 px-6 py-4 text-lg font-semibold text-white active:scale-[.99]">
+        Start planning
+      </button>
+      <p class="mt-4 text-xs text-slate-500">Guidance only. Always verify on the official portal before applying.</p>
+    </section>
 
-  <div class="members" id="members"></div>
-  <button type="button" id="checkAll">Check household</button>
-  <div id="error" class="error" hidden></div>
-  <div id="results"></div>
+    <!-- WIZARD -->
+    <section id="screen-wizard" class="hidden flex-1 flex-col">
+      <div class="h-1.5 w-full rounded-full bg-slate-200">
+        <div id="progress" class="h-1.5 w-0 rounded-full bg-emerald-600 transition-all"></div>
+      </div>
+      <p id="step-label" class="mt-3 text-xs font-medium uppercase tracking-wide text-slate-500"></p>
+      <h2 id="q-label" class="mt-2 text-2xl font-semibold leading-snug"></h2>
+      <div id="q-body" class="mt-6 flex-1"></div>
+      <div class="flex gap-3 pb-2">
+        <button id="btn-back" class="rounded-2xl border border-slate-300 px-5 py-3 font-medium text-slate-700">Back</button>
+        <button id="btn-next" class="flex-1 rounded-2xl bg-emerald-600 px-6 py-3 text-lg font-semibold text-white disabled:opacity-40">Next</button>
+      </div>
+    </section>
 
-  <p class="disclaimer">
-    Screening guidance, not an eligibility decision. Rules reflect official scheme information reviewed 22 November 2026.
-    Confirm on the official portal before applying. Nothing you enter is stored or sent anywhere.
-  </p>
+    <!-- RESULTS -->
+    <section id="screen-results" class="hidden flex-1 flex-col">
+      <h2 class="text-2xl font-bold">Your family plan</h2>
+      <p class="mt-1 text-sm text-slate-600">Green = you meet every stated condition. Amber = one detail is missing or needs proof.</p>
+      <div id="results-body" class="mt-4 space-y-6"></div>
+      <div class="mt-6 space-y-3 pb-4">
+        <button id="btn-share" class="w-full rounded-2xl bg-emerald-600 px-6 py-4 font-semibold text-white">Share on WhatsApp</button>
+        <button id="btn-add" class="w-full rounded-2xl border border-slate-300 px-6 py-4 font-semibold text-slate-800">Add another family member</button>
+        <button id="btn-reset" class="w-full px-6 py-2 text-sm text-slate-500 underline">Start over</button>
+      </div>
+    </section>
 
-  <script src="rules.js"></script>
-  <script>
-    const household = [];
-    const $ = (id) => document.getElementById(id);
-    const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) =>
-      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-
-    function readPerson() {
-      return {
-        label: $("label").value.trim() || `Person ${household.length + 1}`,
-        age: Number($("age").value),
-        area: $("area").value,
-        income: $("income").value,
-        occupation: $("occupation").value,
-        ownsFarmland: $("ownsFarmland").checked,
-        enrolled: {
-          "pm-kisan": $("enrolledPmKisan").checked,
-          "pmjay-senior": $("enrolledPmjay").checked,
-          "pmjay-family": $("enrolledPmjay").checked,
-        },
-      };
-    }
-
-    function renderMembers() {
-      $("members").innerHTML = household.length === 0 ? "" :
-        "<h2>Household</h2>" + household.map((p, i) =>
-          `<div class="member"><span>${escapeHtml(p.label)} (age ${p.age})</span>
-           <button type="button" class="secondary" data-remove="${i}">Remove</button></div>`).join("");
-    }
-
-    $("addMember").addEventListener("click", () => {
-      const person = readPerson();
-      if (Number.isNaN(person.age) || person.age < 0) {
-        showError("Please enter a valid age.");
-        return;
-      }
-      household.push(person);
-      ["label", "age"].forEach((id) => ($(id).value = ""));
-      ["ownsFarmland", "enrolledPmKisan", "enrolledPmjay"].forEach((id) => ($(id).checked = false));
-      $("error").hidden = true;
-      renderMembers();
-    });
-
-    $("members").addEventListener("click", (e) => {
-      const i = e.target.dataset.remove;
-      if (i !== undefined) { household.splice(Number(i), 1); renderMembers(); $("results").innerHTML = ""; }
-    });
-
-    function showError(msg) { $("error").textContent = msg; $("error").hidden = false; }
-
-    $("checkAll").addEventListener("click", () => {
-      // Include the form's current entries if they have an age and nobody has been added yet.
-      const current = $("age").value ? [readPerson()] : [];
-      const people = household.length ? household : current;
-      if (people.length === 0) { showError("Add at least one person with an age."); return; }
-      $("error").hidden = true;
-
-      const sections = people.map((person) => {
-        const plan = buildPlan(person);
-        const body = plan.length === 0
-          ? "<p>No matches from these answers. Schemes change often, so check pmjay.gov.in and pmkisan.gov.in.</p>"
-          : plan.map((p) => `
-            <div class="card">
-              <span class="badge ${p.status}">${p.status === "likely" ? "Likely eligible" : "Possibly eligible"}</span>
-              <h3>${escapeHtml(p.name)}</h3>
-              <p>${escapeHtml(p.benefit)}</p>
-              <p><strong>Why:</strong> ${escapeHtml(p.why)}</p>
-              <p><strong>Next step:</strong> ${escapeHtml(p.nextStep)}</p>
-              <p><strong>Documents to bring:</strong></p>
-              <ul>${p.documents.map((d) => `<li>${escapeHtml(d)}</li>`).join("")}</ul>
-              <p><strong>What could block you:</strong></p>
-              <ul>${p.blockers.map((b) => `<li>${escapeHtml(b)}</li>`).join("")}</ul>
-              <p class="small">${escapeHtml(p.timing)} · <a href="${escapeHtml(p.officialUrl)}" target="_blank" rel="noopener">Official site</a></p>
-            </div>`).join("");
-        return `<h2>${escapeHtml(person.label)}</h2>${body}`;
-      });
-
-      const combined = people.map((p) => shareText(buildPlan(p))).join("\n\n---\n\n");
-      $("results").innerHTML = sections.join("") + `
-        <h2>Share this plan</h2>
-        <p class="small">Copy this and send it to family or a community helper.</p>
-        <pre id="shareBox">${escapeHtml(combined)}</pre>
-        <button type="button" id="copyBtn">Copy plan</button>`;
-
-      $("copyBtn").addEventListener("click", async () => {
-        try {
-          await navigator.clipboard.writeText($("shareBox").textContent);
-          $("copyBtn").textContent = "Copied";
-        } catch (err) {
-          $("copyBtn").textContent = "Copy failed. Select the text above and copy it.";
-        }
-      });
-    });
-  </script>
+  </main>
+  <script type="module" src="./app.js"></script>
 </body>
 </html>
