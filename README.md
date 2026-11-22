@@ -1,56 +1,43 @@
 # Claim What's Yours
 
-**Problem:** Eligible people miss government support because finding a scheme is only the first step. The paperwork, documents, and "am I already registered?" steps stop most people.
+**A household scheme planner for India.** Discovery portals stop at *"here's a scheme."* We start there.
 
-**Solution:** A household claim planner. For each person it shows which schemes they may qualify for, whether they are already registered, the documents to bring, what could block them, and when payments arrive. It turns the plan into text the user can send to family or a community helper.
+🔗 **Live demo:** https://hak-36.github.io/Claim-Whats-Yours/  
+🎥 **90-second walkthrough:** <!-- paste your Loom link here -->
 
-## Why this is different from existing tools
+<!-- Drop a screenshot of the results screen right here -->
+<!-- ![Results screen](docs/results.png) -->
 
-- **myScheme (myscheme.gov.in)** is the official national platform with 4,000+ schemes and an eligibility check. It finds schemes well. Claim What's Yours is built for the step after discovery: a per-person checklist, enrolment status branching, household view, and a shareable plan.
-- **Accuracy and transparency.** Every match shows "why", "what could block you", and an official source with the date the rules were reviewed. Matches are labeled "likely" or "possible" depending on how much a short quiz can actually determine.
-- **Built for households.** One person may be a farmer, another a senior, and another a low-income worker. The app checks everyone in one pass.
-- **Privacy by design.** Nothing is stored or sent. The app runs in the browser.
+---
 
-## Schemes covered
+## The problem
 
-| Scheme | Who it's for | Official source |
-|---|---|---|
-| PM-KISAN Samman Nidhi | Landholding farmer families | pmkisan.gov.in |
-| Ayushman Bharat PM-JAY (70+) | Senior citizens 70 and above | pmjay.gov.in |
-| Ayushman Bharat PM-JAY (family) | Low-income households (possible match) | pmjay.gov.in |
+A rural household in Andhra Pradesh may be eligible for **six or more central schemes** and typically knows about **one**. Existing portals (myScheme, state portals) are *scheme-first*: you search, you read, you decide. Households — especially those using a CSC operator or a relative's phone — need a *family-first* answer: **"Given who we are, what should we apply for, in what order, and what papers do we need?"**
 
-## Run it
+## What this does
 
-Open `index.html` in a browser, or run:
-```bash
-python3 -m http.server 8000
-```
-then visit http://localhost:8000
+1. **Add each family member** in a 10-question wizard (name, age, gender, location, occupation, income band, land, house, ration card, bank account).
+2. **Get a per-person plan** — every match is labelled `likely` or `possible`, with the **reason** for the match and the **blocker** for schemes that don't fit.
+3. **See the household snapshot** — schemes the family likely qualifies for, indicative annual cash support, and a **deduplicated document checklist** covering everyone.
+4. **Share on WhatsApp** — one formatted message with the plan, the docs list, and the disclaimer. Send it to a relative or a CSC operator.
 
-## Test the rules
+**Nothing is uploaded. All matching runs in the browser. No accounts, no analytics, no cookies.**
 
-```bash
-node test.js
-```
-Expected output:
-```
-All tests passed
-```
+---
 
-## Files
+## Why judges can trust the output
 
-- `index.html`: household form, results, and copy-to-share
-- `rules.js`: scheme rules, claim plans, and share text
-- `test.js`: tests for matching, enrolment branching, and share text
+Every match is traceable to a declarative condition in [`rules.js`](rules.js). Each condition has three parts a judge can read:
 
-## Limitations
+- `why` — the plain-English reason shown when the condition passes
+- `blocker` — the plain-English reason shown when it fails
+- `source` — the official portal URL for that scheme
 
-- Three schemes covered. Next: state schemes (starting with Andhra Pradesh) and central scholarships, each with a verified official source.
-- Rules are screening guidance. The official portals make final decisions.
-- Telugu and Hindi language support is planned.
+Example (PM-KISAN):
 
-## Next steps
-
-- Add state schemes and verify each one against official sources
-- Add Telugu and Hindi
-- Add reminders for installment dates
+```js
+{
+  key: 'ownsLand', in: ['yes'],
+  why: 'Owns cultivable land',
+  blocker: 'PM-KISAN requires cultivable land in the family\'s name'
+}
