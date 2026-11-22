@@ -128,38 +128,40 @@ export const SCHEMES = [
   }
 ];
 
-const val = (x, p) => (typeof x === 'function' ? x(null, p) : x);
+// A static string is returned as-is; a function is called with the person object.
+const val = (x, p) => (typeof x === 'function' ? x(p) : x);
 
 export function evaluate(scheme, person) {
   const why = [], blockers = [], missing = [];
   let hardFail = false;
-  
+
   for (const c of scheme.conditions) {
     const v = person[c.key];
-    
+
     // Tri-state logic for uncertain answers
     if (v === 'unsure') {
       blockers.push(`Needs verification: ${c.key}`);
-      continue; 
+      continue;
     }
-    
-    if (v === undefined || v === null || v === '') { 
-      missing.push(c.key); 
-      continue; 
+
+    if (v === undefined || v === null || v === '') {
+      missing.push(c.key);
+      continue;
     }
-    
+
     const ok = c.in ? c.in.includes(v) : c.test(v, person);
-    if (ok) { 
-      if (c.why) why.push(val(c.why, person)); 
+    if (ok) {
+      if (c.why) why.push(val(c.why, person));
     } else {
       if (c.blocker) blockers.push(val(c.blocker, person));
       if (!c.soft) hardFail = true;
     }
   }
-  
+
   const status = hardFail ? 'no' : (missing.length || blockers.length) ? 'possible' : 'likely';
   return { id: scheme.id, scheme, status, why, blockers, missing };
 }
+
 export function planForPerson(person) {
   const rank = { likely: 0, possible: 1, no: 2 };
   return SCHEMES.map((s) => evaluate(s, person))
