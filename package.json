@@ -1,2 +1,13 @@
-{ "name": "claim-whats-yours", "version": "1.0.0", "type": "module",
-  "scripts": { "test": "node --test", "start": "node server.js" } }
+{
+  "name": "claim-whats-yours",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node --test",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}
