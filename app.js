@@ -197,6 +197,19 @@ function commit() {
     }
   }
 }
+  function saveStateToURL() {
+  if (state.household.length === 0) return;
+  const encoded = btoa(encodeURIComponent(JSON.stringify(state.household)));
+  window.history.replaceState(null, null, `#plan=${encoded}`);
+  
+  // Add this visual meter!
+  const byteSize = new Blob([encoded]).size;
+  const meter = document.getElementById('payload-meter');
+  if (meter) {
+    meter.textContent = `State Payload: ${byteSize} bytes (Zero-Server PII)`;
+    meter.classList.remove('hidden');
+  }
+}
 loadStateFromURL(); // <--- Call this right before show('start') at the bottom
   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
 });
